@@ -152,15 +152,13 @@ crr_result = []
 RB_result = []
 LR_result = []
 
-for i in range(50,1001):
-    print ("%s step start!" %(i))
+for i in tqdm(range(50,1001)):
     crr = option_tree(s,k,r,T,sigma,i,option_type,option_type2,'CRR',q)
     rb = option_tree(s,k,r,T,sigma,i,option_type,option_type2,'Rendleman',q)
     crr_result.append(crr)
     RB_result.append(rb)
 
-for i in np.arange(51,1000,2):
-    print ("%s step start!" %(i))
+for i in tqdm(np.arange(51,1000,2)):
     lr = option_tree(s,k,r,T,sigma,i,option_type,option_type2,'LR',q)
     LR_result.append(lr)
     
@@ -211,8 +209,7 @@ option_type = 'put'
 option_type2_ ='American'
 exact_result = []
 
-for i in range(10001,10010,2):
-    print ("%s step start!" %(i))
+for i in tqdm(range(10001,10010,2)):
     lr = option_tree(s,k,r,T,sigma,i,option_type,option_type2_,'LR',q)
     exact_result.append(lr)
 
@@ -224,14 +221,12 @@ crr_result_american = []
 bd_result_american = []
 LR_result_amreican = []
 for i in tqdm(range(50,1000)):
-    print ("%s step start!" %(i))
     crr_american = option_tree(s,k,r,T,sigma,i,option_type,option_type2_,'CRR',q)
     bd = BD_method(s,k,r,sigma,q,T,i)
     crr_result_american.append(crr_american)
     bd_result_american.append(bd)
-#%%
+
 for i in tqdm(range(51,1000,2)):
-    print ("%s step start!" %(i))
     lr = option_tree(s,k,r,T,sigma,i,option_type,option_type2_,'LR',q)
     LR_result_amreican.append(lr)
     
