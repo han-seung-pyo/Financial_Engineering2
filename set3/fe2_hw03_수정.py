@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 import matplotlib.pyplot as plt
-from scipy.optimize import root, fsolve, newton
 import time ## 시간 측정하는 library. time.time(측정할 것)
+from tqdm import tqdm
 #%%
 #BLACK SHOLES PRICE
 def d1(s,k,r,q,T,sigma):
@@ -176,6 +176,7 @@ plt.scatter(x_axis,Error_CRR)
 plt.xlabel('Number of Steps')
 plt.ylabel('Error')
 plt.title('Error of CRR - BS model')
+plt.savefig('Error of CRR - BS model')
 plt.show()
 
 plt.figure(2)
@@ -183,15 +184,19 @@ plt.scatter(x_axis,Error_RB)
 plt.xlabel('Number of Steps')
 plt.ylabel('Error')
 plt.title('Error of RB - BS model')
+plt.savefig('Error of RB - BS model')
 plt.show()
 
 x_axis_ = np.arange(51,1000,2)
 plt.figure(3)
 plt.scatter(x_axis_,Error_LR)
+plt.ylim(0,0.0003)
 plt.xlabel('Number of Steps')
 plt.ylabel('Error')
 plt.title('Error of LR - BS model')
 
+
+plt.savefig('Error of LR - BS model')
 
 #%%
 #2-a
@@ -218,14 +223,14 @@ exact_price = np.mean(exact_result)
 crr_result_american = []
 bd_result_american = []
 LR_result_amreican = []
-for i in range(50,1000):
+for i in tqdm(range(50,1000)):
     print ("%s step start!" %(i))
     crr_american = option_tree(s,k,r,T,sigma,i,option_type,option_type2_,'CRR',q)
     bd = BD_method(s,k,r,sigma,q,T,i)
     crr_result_american.append(crr_american)
     bd_result_american.append(bd)
-
-for i in range(51,1000,2):
+#%%
+for i in tqdm(range(51,1000,2)):
     print ("%s step start!" %(i))
     lr = option_tree(s,k,r,T,sigma,i,option_type,option_type2_,'LR',q)
     LR_result_amreican.append(lr)
@@ -238,27 +243,29 @@ Error_CRR_American = crr_result_american - exact_price
 Error_BD_American = bd_result_american - exact_price
 Error_LR_American = LR_result_amreican - exact_price
 
-x_axis = np.arange(50,1001)
-plt.figure(1)
+x_axis = np.arange(50,1000)
+plt.figure(4)
 plt.scatter(x_axis,Error_CRR_American)
 plt.xlabel('Number of Steps')
 plt.ylabel('Error')
 plt.title('Error of CRR_A - BS model')
 plt.show()
 
-plt.figure(2)
+plt.savefig('Error of CRR_A - BS model')
+plt.figure(5)
 plt.scatter(x_axis,Error_BD_American)
 plt.xlabel('Number of Steps')
 plt.ylabel('Error')
 plt.title('Error of BD_A - BS model')
 plt.show()
-
+plt.savefig('Error of BD_A - BS model')
 x_axis_ = np.arange(51,1000,2)
-plt.figure(3)
+plt.figure(6)
 plt.scatter(x_axis_,Error_LR_American)
 plt.xlabel('Number of Steps')
 plt.ylabel('Error')
 plt.title('Error of LR_A - BS model')
+plt.savefig('Error of LR_A - BS model')
 #%%
 #2-c
 #Excersise boundary
@@ -300,9 +307,10 @@ boundary =exercise_s.max(axis=0)
 boundary_new = boundary.sort_index(ascending=False)
 boundary_new = pd.DataFrame(boundary_new.values)
 time_index = np.arange(0,1.01,0.01)
-plt.figure(5)
+plt.figure(7)
 plt.plot(time_index,boundary_new,label='Boundary')
 plt.xlabel('Time Step')
 plt.ylabel('Stock price')
 plt.legend(loc='best')
 plt.title('Put option early excersize boundary')
+plt.savefig('Put option early excersize boundary')
