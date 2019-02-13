@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 import matplotlib.pyplot as plt
-import time ## 시간 측정하는 library. time.time(측정할 것)
 from tqdm import tqdm
 #%%
 #BLACK SHOLES PRICE
@@ -309,3 +308,198 @@ plt.ylabel('Stock price')
 plt.legend(loc='best')
 plt.title('Put option early excersize boundary')
 plt.savefig('Put option early excersize boundary')
+#%%
+def DOA_bs_price(s,k,B,r,q,t,sigma,option_type):
+    if option_type == 'call':
+        x = 1;
+    if option_type == 'put':
+        x = -1;
+    d_1 = (np.log(s/k) + (r-q+0.5*sigma**2)*t)/(sigma*np.sqrt(t))
+    d_2 = (np.log(s/k) + (r-q-0.5*sigma**2)*t)/(sigma*np.sqrt(t))
+    h_1 = (np.log((B**2)/(k*s)) + (r-q+0.5*sigma**2)*t)/(sigma*np.sqrt(t))
+    h_2 = (np.log((B**2)/(k*s)) + (r-q-0.5*sigma**2)*t)/(sigma*np.sqrt(t))
+    term1 = x * s * np.exp(-q*T) * norm.cdf(x*d_1) -x*k*np.exp(-r*T) *norm.cdf(x*d_2);
+    term2 = ((B/s)**(1+2*r/(sigma**2))*s*norm.cdf(h_1))
+    term3 = (B/s)**(-1+2*r/(sigma**2))*k*np.exp(-r*t)*norm.cdf(h_2)
+    option_price = term1 - term2 +term3
+    return option_price.round(3)
+
+
+#%%
+def DAO_Binomial(s,k,B,r,q,sigma,T,N,option_type,tree_type,barrier_type=None,Barrier_number=None,Barrier_time=None):
+    dt = T/N
+    v = np.zeros(N+1)
+    vv =np.zeros(N+1)
+    cond=0
+    
+    def Leisen_Reimer(s,k,sigma,r,q,T,N):
+        dt = T/N
+        d1 = (np.log(s/k)+(r-q+0.5*sigma**2)*T)/(sigma*np.sqrt(T))
+        d2 = (np.log(s/k)+(r-q-0.5*sigma**2)*T)/(sigma*np.sqrt(T))
+        
+        def h_func(d):
+            
+            if d < 0:
+               
+               h = 0.5 - np.sqrt(0.25-0.25*np.exp(-np.power((d/(N+(1/3))),2)*(N+(1/6))))
+               
+            else:
+                
+               h = 0.5 + np.sqrt(0.25-0.25*np.exp(-np.power((d/(N+(1/3))),2)*(N+(1/6)))) 
+               
+            return h
+        
+        q_ = h_func(d1)
+        q = h_func(d2)
+        u = q_*np.exp((r-q)*dt)/q
+        d = (np.exp((r-q)*dt)-q*u)/(1-q)
+        
+        return q,u,d
+    
+    
+    if tree_type == 'CRR':
+        u  = np.exp(sigma*np.sqrt(dt))
+        d = 1/u
+    elif tree_type == 'Binomial':
+        u  = np.exp(r*T/N+sigma*np.sqrt(dt))
+        d = np.exp(r*T/N-sigma*np.sqrt(dt))
+        
+    elif tree_type == 'Rendleman':
+        u = np.exp((r-q-0.5*sigma**2)*dt+sigma*np.sqrt(dt))
+        d = np.exp((r-q-0.5*sigma**2)*dt-sigma*np.sqrt(dt))
+        
+    elif tree_type == 'LR':
+        u = Leisen_Reimer(s,k,sigma,r,q,T,N)[1]
+        d = Leisen_Reimer(s,k,sigma,r,q,T,N)[2]
+        
+        
+    p = (np.exp(r*dt)-d)/(u-d)
+    
+
+    if option_type=='call':    
+        sign = 1
+    else:
+        sign = -1
+        
+    for i in range(N+1):
+        s1 = s* (u**i)*(d**(N-i))
+        v[i] = max(sign*(s1-k),0)
+        
+        if s1 >B and cond == 0:
+            sk = s1
+            sk_under = s *u**(i-1)*d**(N-(i-1))
+            lambda_cal = (sk-B)/(sk-sk_under)
+            cond=1
+            
+    for j in range(1,N+1):
+        for i in range(N+1-j):
+            vv[i] = np.exp(-r*dt)*(p*v[i+1]+(1-p)*v[i])
+            s1 = s * (u**i) * (d**(N-j-i))
+            if s1<B:
+                vv[i]=0
+                
+        for i in range(N+1):
+            v[i] = vv[i]
+            
+    if barrier_type=='Discrete':
+        dn= N/Barrier_number
+        barrier_node = dn * Barrier_time #정수 일수도, 아닐 수도 있다!
+        barrier_node_ad = int(barrier_node)
+        
+        for i in range(N+1):
+            s1 = s* (u**i)*(d**(N-i))
+            v[i] = max(sign*(s1-k),0)
+        
+            if s1 >B and cond == 0:
+                sk = s1
+                sk_under = s *u**(i-1)*d**(N-(i-1))
+                lambda_cal = (sk-B)/(sk-sk_under)
+                cond=1
+        
+        for j in range(1,N+1):
+            for i in range(N+1-j):
+                vv[i] = np.exp(-r*dt)*(p*v[i+1]+(1-p)*v[i])
+                s1 = s * (u**i) * (d**(N-j-i))
+                
+                if j in barrier_node_ad:
+                    if s1*np.exp(r*(barrier_node*dt-j*dt))<B:
+                        vv[i] = 0
+    
+            for i in range(N+1):
+                v[i] = vv[i]
+        
+    return v[0], lambda_cal
+
+#%%
+#3-a,b
+s = 100
+k=100
+B= 95
+r = 0.1
+q = 0
+sigma = 0.3
+T = 0.2
+
+exact_d = DOA_bs_price(s,k,B,r,q,T,sigma,'call')
+DAO_result = []
+for i in tqdm(range(50,1000)):
+    DAO_result.append(DAO_Binomial(s,k,B,r,q,sigma,T,i,'call','CRR'))
+DAO_result_ = pd.DataFrame(DAO_result,columns=['CRR','lambda'])
+
+#%%
+#3-b
+Err_DOA_CRR = DAO_result_['CRR'] - exact_d
+x_axis = np.arange(50,1000)
+plt.figure(8)
+plt.plot(x_axis,DAO_result_['CRR'])
+plt.xlabel('Number of Steps')
+plt.ylabel('Error')
+plt.title('Err_DOA_CRR - BS model')
+plt.savefig('Err_DOA_CRR- BS mode')
+plt.show()
+
+plt.figure(9)
+plt.scatter(x_axis,DAO_result_['lambda'])
+plt.xlabel('Number of Steps')
+plt.ylabel('lambda')
+plt.title('lambda')
+plt.savefig('lambda')
+plt.show()
+
+#%%
+#4a,b
+s = 100
+k=100
+B= 95
+r = 0.1
+q = 0
+sigma = 0.3
+T = 0.2
+Barrier_time = np.array([1,2,3,4])
+eaxct_dc = 5.6711051343
+Barrier_number=5
+
+dc_DAO_result=[]
+for i in tqdm(np.arange(50,1000,10)):
+    dc_DAO_result.append(DAO_Binomial(s,k,B,r,q,sigma,T,i,'call','CRR','Discrete',Barrier_number,Barrier_time))
+    
+dc_DAO_result = pd.DataFrame(dc_DAO_result ,columns=['dc_crr','lambda'])
+#%%
+
+dc_err = dc_DAO_result['dc_crr'] - eaxct_dc
+x_axis = np.arange(50,1000,10)
+plt.figure(10)
+plt.plot(x_axis,dc_err)
+plt.xlabel('Number of Steps')
+plt.ylabel('Error')
+plt.title('Err_DOA_CRR_DC - BS model')
+plt.show()
+plt.savefig('Err_DOA_CRR_DC - BS model')
+
+plt.figure(11)
+plt.scatter(x_axis,dc_DAO_result['lambda'])
+plt.xlabel('Number of Steps')
+plt.ylabel('lambda')
+plt.title('lambda_discrete')
+plt.savefig('lambda_discrete')
+plt.show()
