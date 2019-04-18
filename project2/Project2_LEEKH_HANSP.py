@@ -31,7 +31,7 @@ def FDM_pricing(s0,r,div,sigma,Barrier_level,cpn_rate,FV,upper_ratio,S_node,T_no
     
     def TDMAsolver(a, b, c, d):
  
-        nf = len(a)     # number of edivuations
+        nf = len(d)     # number of edivuations
         ac, bc, cc, dc = map(np.array, (a, b, c, d))     # copy the array
         for it in range(1, nf):
             mc = ac[it-1]/bc[it-1]
